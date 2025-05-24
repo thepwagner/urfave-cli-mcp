@@ -1,0 +1,12 @@
+name: CI
+
+on:
+  push:
+
+permissions: {}
+
+jobs:
+  build:
+    uses: thepwagner-org/actions/.github/workflows/golang-test.yaml@16e79010b51bd1d6b7b247a59c70bee903e480e4 # v3.0.1
+    permissions:
+      contents: read
