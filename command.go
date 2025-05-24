@@ -16,9 +16,9 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
-const toolDelimiter = "_"
+const ToolDelimiter = "_"
 
-func MCPCommand(root *cli.Command) *cli.Command {
+func MCPCommand(root *cli.Command, prefix ...string) *cli.Command {
 	// Calling root.Run will modify root.Action, so store if it is non-nil first
 	// We'll use this to decide to hide the root app if it's just a help command.
 	hasRootAction := root.Action != nil
@@ -30,7 +30,7 @@ func MCPCommand(root *cli.Command) *cli.Command {
 			slog.Debug("building MCP server", slog.Any("app", root.Name))
 
 			slog.Debug("serving MCP server")
-			srv, err := MPCServer(root, hasRootAction)
+			srv, err := MPCServer(root, hasRootAction, prefix...)
 			if err != nil {
 				return err
 			}
@@ -40,12 +40,17 @@ func MCPCommand(root *cli.Command) *cli.Command {
 	}
 }
 
-func MPCServer(root *cli.Command, hasRootAction bool) (*server.MCPServer, error) {
+func MPCServer(root *cli.Command, hasRootAction bool, prefix ...string) (*server.MCPServer, error) {
 	srv := server.NewMCPServer(root.Name, root.Version, server.WithToolCapabilities(true))
 
 	toolHandler := func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		args := strings.Split(request.Params.Name, toolDelimiter)
+		args := strings.Split(request.Params.Name, ToolDelimiter)
+
+		// Assume we were called with a root command - it should not be forwarded when we fork.
 		args = args[1:]
+
+		// If we were not called from the root command, add any prefix that was specified:
+		args = append(prefix, args...)
 
 		// We're about to execute some user input, how bad of an idea is that?
 		// Because we hardcode `os.Args[0]` and don't use a shell, we're safe from command injection.
@@ -68,8 +73,8 @@ func MPCServer(root *cli.Command, hasRootAction bool) (*server.MCPServer, error)
 			}
 		}
 		var logFields []any
-		for _, arg := range args {
-			logFields = append(logFields, slog.Any("arg", arg))
+		for i, arg := range args {
+			logFields = append(logFields, slog.Any(fmt.Sprintf("%d", i), arg))
 		}
 		slog.Info("forking", slog.Any("cmd", os.Args[0]), slog.Group("args", logFields...))
 
