@@ -24,7 +24,7 @@ var App = &cli.Command{
 					Value: "World",
 				},
 			},
-			Action: func(ctx context.Context, c *cli.Command) error {
+			Action: func(_ context.Context, c *cli.Command) error {
 				fmt.Println("Hello,", c.String("name"))
 				return nil
 			},
@@ -42,7 +42,7 @@ var App = &cli.Command{
 					Usage: "the second number to add",
 				},
 			},
-			Action: func(ctx context.Context, c *cli.Command) error {
+			Action: func(_ context.Context, c *cli.Command) error {
 				first := c.Int64("first")
 				second := c.Int64("second")
 				fmt.Printf("%d + %d = %d\n", first, second, first+second)

@@ -26,7 +26,7 @@ func NewMCPCommand(root *cli.Command) *cli.Command {
 	return &cli.Command{
 		Name:  "mcp",
 		Usage: "Serve commands as MCP server on stdio",
-		Action: func(ctx context.Context, c *cli.Command) error {
+		Action: func(ctx context.Context, _ *cli.Command) error {
 			slog.Debug("building MCP server", slog.Any("app", root.Name))
 			srv := server.NewMCPServer(root.Name, root.Version, server.WithToolCapabilities(true))
 
@@ -107,7 +107,8 @@ func NewMCPCommand(root *cli.Command) *cli.Command {
 			}
 
 			slog.Debug("serving MCP server")
-			return server.ServeStdio(srv)
+			s := server.NewStdioServer(srv)
+			return s.Listen(ctx, os.Stdin, os.Stdout)
 		},
 	}
 }
