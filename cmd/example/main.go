@@ -53,7 +53,7 @@ var App = &cli.Command{
 }
 
 func main() {
-	App.Commands = append(App.Commands, urfaveclimcp.NewMCPCommand(App))
+	App.Commands = append(App.Commands, urfaveclimcp.MCPCommand(App))
 
 	if err := App.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err)
