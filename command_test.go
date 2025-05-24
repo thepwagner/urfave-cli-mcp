@@ -53,6 +53,11 @@ func TestMCPCommandServer(t *testing.T) {
 						Value:    688,
 						Required: true,
 					},
+					&cli.BoolFlag{
+						Name:   "hidden",
+						Usage:  "hidden flag",
+						Hidden: true,
+					},
 				},
 				Action: func(context.Context, *cli.Command) error { return nil },
 			},

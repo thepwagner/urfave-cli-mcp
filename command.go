@@ -140,6 +140,9 @@ func FlagsToTools(flags []cli.Flag) ([]mcp.ToolOption, error) {
 	for _, flag := range flags {
 		switch f := flag.(type) {
 		case *cli.StringFlag:
+			if f.Hidden {
+				continue
+			}
 			propOpts := []mcp.PropertyOption{
 				mcp.Description(f.Usage),
 			}
@@ -149,10 +152,11 @@ func FlagsToTools(flags []cli.Flag) ([]mcp.ToolOption, error) {
 			if f.Value != "" {
 				propOpts = append(propOpts, mcp.DefaultString(f.Value))
 			}
+
 			opts = append(opts, mcp.WithString(f.Name, propOpts...))
 
 		case *cli.BoolFlag:
-			if f.Name == "help" {
+			if f.Name == "help" || f.Hidden {
 				continue
 			}
 			propOpts := []mcp.PropertyOption{
@@ -166,29 +170,29 @@ func FlagsToTools(flags []cli.Flag) ([]mcp.ToolOption, error) {
 
 		// Numbers are nearly identical.
 		case *cli.IntFlag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Int8Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Int16Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Int32Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Int64Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.UintFlag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Uint8Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Uint16Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Uint32Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Uint64Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Float32Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 		case *cli.Float64Flag:
-			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required))
+			opts = append(opts, numberToolOption(f.Name, f.Usage, f.Value, f.Required, f.Hidden)...)
 
 		// TODO: slices?
 
@@ -199,7 +203,10 @@ func FlagsToTools(flags []cli.Flag) ([]mcp.ToolOption, error) {
 	return opts, nil
 }
 
-func numberToolOption[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64](name, usage string, value T, required bool) mcp.ToolOption {
+func numberToolOption[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint16 | uint32 | uint64 | float32 | float64](name, usage string, value T, required, hidden bool) []mcp.ToolOption {
+	if hidden {
+		return nil
+	}
 	propOpts := []mcp.PropertyOption{
 		mcp.Description(usage),
 		mcp.DefaultNumber(float64(value)),
@@ -207,5 +214,5 @@ func numberToolOption[T int | int8 | int16 | int32 | int64 | uint | uint8 | uint
 	if required {
 		propOpts = append(propOpts, mcp.Required())
 	}
-	return mcp.WithNumber(name, propOpts...)
+	return []mcp.ToolOption{mcp.WithNumber(name, propOpts...)}
 }
