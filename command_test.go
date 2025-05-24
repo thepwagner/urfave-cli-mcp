@@ -3,6 +3,7 @@ package urfaveclimcp_test
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/client"
@@ -13,6 +14,12 @@ import (
 	urfaveclimcp "github.com/thepwagner/urfave-cli-mcp"
 	"github.com/urfave/cli/v3"
 )
+
+func init() {
+	// The server is going to fork os.Args[0], because it thinks that is the CLI app.
+	// Right now it's actually some test harness value, let's spoof it to a known ~safe value
+	os.Args = []string{"/bin/echo"}
+}
 
 func TestMCPCommand(t *testing.T) {
 	t.Parallel()
@@ -89,10 +96,6 @@ func TestMCPCommandServer(t *testing.T) {
 func TestMCPCommandServer_CallTool(t *testing.T) {
 	t.Parallel()
 
-	// The server is going to fork os.Args[0], because it thinks that is the CLI app.
-	// Right now it's actually some test harness value, let's spoof it to a known ~safe value
-	os.Args = []string{"/bin/echo"}
-
 	root := &cli.Command{
 		Name: "test",
 		Flags: []cli.Flag{
@@ -108,7 +111,6 @@ func TestMCPCommandServer_CallTool(t *testing.T) {
 
 	transport := transport.NewInProcessTransport(srv)
 	c := client.NewClient(transport)
-
 	_, err = c.Initialize(t.Context(), mcp.InitializeRequest{})
 	require.NoError(t, err)
 
@@ -123,4 +125,36 @@ func TestMCPCommandServer_CallTool(t *testing.T) {
 
 	// The output of `echo --target 689` is returned, because that's how we would call the CLI app.
 	assert.Equal(t, "--target 689\n", content.Text)
+}
+
+func TestMCPCommandServer_CallTool_Subcommand(t *testing.T) {
+	t.Parallel()
+
+	root := &cli.Command{
+		Name: "test",
+		Commands: []*cli.Command{
+			{
+				Name:   "sub",
+				Action: func(context.Context, *cli.Command) error { return nil },
+			},
+		},
+	}
+	srv, err := urfaveclimcp.MPCServer(root, false, "foo", "bar")
+	assert.NoError(t, err)
+
+	transport := transport.NewInProcessTransport(srv)
+	c := client.NewClient(transport)
+	_, err = c.Initialize(t.Context(), mcp.InitializeRequest{})
+	require.NoError(t, err)
+
+	req := mcp.CallToolRequest{}
+	req.Params.Name = strings.Join([]string{"test", "sub"}, urfaveclimcp.ToolDelimiter)
+
+	callResult, err := c.CallTool(t.Context(), req)
+	require.NoError(t, err)
+	assert.Len(t, callResult.Content, 1)
+	content, ok := callResult.Content[0].(mcp.TextContent)
+	assert.True(t, ok)
+
+	assert.Equal(t, "foo bar sub\n", content.Text)
 }
