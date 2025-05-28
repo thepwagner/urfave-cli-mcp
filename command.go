@@ -96,7 +96,7 @@ func MPCServer(root *cli.Command, hasRootAction bool, prefix ...string) (*server
 	// Recurse the command and register as tools:
 	var register func(cmd *cli.Command, prefix ...string) error
 	register = func(cmd *cli.Command, prefix ...string) error {
-		if cmd.Name == "mcp" || cmd.Name == "help" {
+		if cmd.Name == "mcp" || cmd.Name == "help" || cmd.Hidden {
 			return nil
 		}
 
