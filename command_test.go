@@ -163,3 +163,85 @@ func TestMCPCommandServer_CallTool_Subcommand(t *testing.T) {
 
 	assert.Equal(t, "foo bar sub\n", content.Text)
 }
+
+func TestMCPCommandServer_IgnoresHiddenCommandsAndSubcommands(t *testing.T) {
+	t.Parallel()
+
+	root := &cli.Command{
+		Name:   "test",
+		Action: func(context.Context, *cli.Command) error { return nil },
+		Commands: []*cli.Command{
+			{
+				Name:   "visible",
+				Usage:  "a visible command",
+				Action: func(context.Context, *cli.Command) error { return nil },
+			},
+			{
+				Name:   "mcp",
+				Usage:  "should be hidden",
+				Action: func(context.Context, *cli.Command) error { return nil },
+			},
+			{
+				Name:   "hidden",
+				Usage:  "should be hidden",
+				Hidden: true,
+				Action: func(context.Context, *cli.Command) error { return nil },
+			},
+			{
+				Name:   "help",
+				Usage:  "should be hidden",
+				Action: func(context.Context, *cli.Command) error { return nil },
+			},
+			{
+				Name:   "parent",
+				Usage:  "parent with hidden subcommands",
+				Action: func(context.Context, *cli.Command) error { return nil },
+				Commands: []*cli.Command{
+					{
+						Name:   "visible-sub",
+						Usage:  "a visible subcommand",
+						Action: func(context.Context, *cli.Command) error { return nil },
+					},
+					{
+						Name:   "mcp",
+						Action: func(context.Context, *cli.Command) error { return nil },
+					},
+					{
+						Name:   "hidden",
+						Usage:  "hidden subcommand",
+						Hidden: true,
+						Action: func(context.Context, *cli.Command) error { return nil },
+					},
+					{
+						Name:   "help",
+						Usage:  "hidden subcommand",
+						Action: func(context.Context, *cli.Command) error { return nil },
+					},
+				},
+			},
+		},
+	}
+
+	srv, err := urfaveclimcp.MPCServer(root, true)
+	assert.NoError(t, err)
+
+	transport := transport.NewInProcessTransport(srv)
+	c := client.NewClient(transport)
+	_, err = c.Initialize(t.Context(), mcp.InitializeRequest{})
+	require.NoError(t, err)
+
+	tools, err := c.ListTools(t.Context(), mcp.ListToolsRequest{})
+	require.NoError(t, err)
+
+	expectedTools := []string{"test", "test_visible", "test_parent", "test_parent_visible-sub"}
+
+	assert.Len(t, tools.Tools, len(expectedTools))
+	toolNames := make([]string, 0, len(tools.Tools))
+	for _, tool := range tools.Tools {
+		toolNames = append(toolNames, tool.Name)
+	}
+
+	for _, expected := range expectedTools {
+		assert.Contains(t, toolNames, expected)
+	}
+}
