@@ -96,12 +96,12 @@ func MPCServer(root *cli.Command, hasRootAction bool, prefix ...string) (*server
 	// Recurse the command and register as tools:
 	var register func(cmd *cli.Command, prefix ...string) error
 	register = func(cmd *cli.Command, prefix ...string) error {
-		if cmd.Name == "mcp" || cmd.Name == "help" || cmd.Hidden {
+		if cmd.Name == "mcp" || cmd.Name == "help" {
 			return nil
 		}
 
 		loc := append(prefix, cmd.Name)
-		if cmd.Action != nil && (len(prefix) > 0 || hasRootAction) {
+		if !cmd.Hidden && cmd.Action != nil && (len(prefix) > 0 || hasRootAction) {
 			slog.Debug("registering command", slog.Any("loc", loc))
 			toolOpts, err := FlagsToTools(cmd.Flags)
 			if err != nil {
